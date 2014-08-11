@@ -22,7 +22,14 @@ prepare_neutron_migration() {
 
   # Get nodes that have the neutron_server role
   neutron_nodes=
-  get_allocated_nodes neutron_nodes "neutron_server"
+  get_allocated_nodes neutron_nodes "neutron-server"
+
+  if [ -z "$neutron_nodes" ]; then
+    echo "Error: neutron-server nodes not found" >&2
+    exit 2
+  fi
+
+  echo $neutron_nodes > ${UPGRADE_DATA_DIR}/neutron-server.nodes
 
   for i in $neutron_nodes; do
     ssh $i 'neutron-db-manage --config-file /etc/neutron/neutron.conf \
@@ -36,8 +43,12 @@ prepare_neutron_migration() {
 finish_neutron_migration() {
 
   # Get nodes that have the neutron_server role
-  neutron_nodes=
-  get_allocated_nodes neutron_nodes "neutron_server"
+  neutron_nodes=$(cat ${UPGRADE_DATA_DIR}/neutron-server.nodes)
+
+  if [ -z "$neutron_nodes" ]; then
+    echo "Error: neutron-server nodes not found" >&2
+    exit 2
+  fi
 
   for i in $neutron_nodes; do
     ssh $i 'neutron-db-manage --config-file /etc/neutron/neutron.conf \
